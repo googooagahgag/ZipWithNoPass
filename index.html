@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zip Extractor</title>
+    <style>
+        /* styles.css */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to right, purple, darkblue);
+            color: white;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+        }
+
+        h1 {
+            font-size: 3rem;
+        }
+
+        input[type="file"] {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="file"]:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .scroller {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            display: none; /* Hidden until zip file is loaded */
+        }
+
+        .scroller div {
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .scroller div:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Title -->
+    <div class="container">
+        <h1>To Zip with no Pass</h1>
+
+        <!-- File upload input -->
+        <input type="file" id="fileInput" accept=".zip" onchange="handleFileUpload()" />
+
+        <!-- Scroller that shows zip contents -->
+        <div class="scroller" id="fileList">
+            <!-- Dynamically populated file contents will appear here -->
+        </div>
+    </div>
+
+    <!-- JSZip Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.9.1/dist/jszip.min.js"></script>
+
+    <script>
+        // JavaScript (scripts.js)
+        function handleFileUpload() {
+            const fileInput = document.getElementById("fileInput");
+            const fileList = document.getElementById("fileList");
+
+            // Clear previous file list
+            fileList.innerHTML = '';
+
+            const file = fileInput.files[0];
+
+            if (file && file.name.endsWith(".zip")) {
+                // Show the scroller after selecting a file
+                document.querySelector('.scroller').style.display = 'block';
+
+                // Create a file reader
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const zip = new JSZip();
+                    zip.loadAsync(event.target.result).then(function(contents) {
+                        // Loop through the zip file's contents
+                        Object.keys(contents.files).forEach(function(filename) {
+                            const fileEntry = contents.files[filename];
+
+                            // Create a div for each file in the zip
+                            const fileDiv = document.createElement("div");
+                            fileDiv.textContent = filename;
+                            fileDiv.onclick = function() {
+                                // Download the file when clicked
+                                fileEntry.async("blob").then(function(blob) {
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(blob);
+                                    link.download = filename;
+                                    link.click();
+                                });
+                            };
+
+                            fileList.appendChild(fileDiv);
+                        });
+                    });
+                };
+
+                // Read the zip file as binary
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert("Please select a valid .zip file.");
+            }
+        }
+    </script>
+
+</body>
+</html>
