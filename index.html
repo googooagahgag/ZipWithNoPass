@@ -65,73 +65,104 @@
         .scroller div:hover {
             background-color: rgba(255, 255, 255, 0.3);
         }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
     </style>
 </head>
 <body>
 
-    <!-- Main Title -->
     <div class="container">
         <h1>To Zip with no Pass</h1>
 
-        <!-- File upload input -->
         <input type="file" id="fileInput" accept=".zip" onchange="handleFileUpload()" />
 
-        <!-- Scroller that shows zip contents -->
+        <button id="seeZipButton" style="display:none;" onclick="showZipContents()">See zip stuff</button>
+
         <div class="scroller" id="fileList">
-            <!-- Dynamically populated file contents will appear here -->
+            <!-- Zip file contents will be populated here -->
         </div>
     </div>
 
-    <!-- JSZip Library -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.9.1/dist/jszip.min.js"></script>
 
     <script>
-        // JavaScript (scripts.js)
+        let currentZipFile = null;
+
         function handleFileUpload() {
             const fileInput = document.getElementById("fileInput");
-            const fileList = document.getElementById("fileList");
+            const seeZipButton = document.getElementById("seeZipButton");
 
             // Clear previous file list
-            fileList.innerHTML = '';
+            document.getElementById("fileList").innerHTML = '';
+            seeZipButton.style.display = "none"; // Hide the button initially
 
             const file = fileInput.files[0];
 
             if (file && file.name.endsWith(".zip")) {
-                // Show the scroller after selecting a file
-                document.querySelector('.scroller').style.display = 'block';
-
-                // Create a file reader
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const zip = new JSZip();
-                    zip.loadAsync(event.target.result).then(function(contents) {
-                        // Loop through the zip file's contents
-                        Object.keys(contents.files).forEach(function(filename) {
-                            const fileEntry = contents.files[filename];
-
-                            // Create a div for each file in the zip
-                            const fileDiv = document.createElement("div");
-                            fileDiv.textContent = filename;
-                            fileDiv.onclick = function() {
-                                // Download the file when clicked
-                                fileEntry.async("blob").then(function(blob) {
-                                    const link = document.createElement('a');
-                                    link.href = URL.createObjectURL(blob);
-                                    link.download = filename;
-                                    link.click();
-                                });
-                            };
-
-                            fileList.appendChild(fileDiv);
-                        });
-                    });
-                };
-
-                // Read the zip file as binary
-                reader.readAsArrayBuffer(file);
+                currentZipFile = file;  // Store the uploaded zip file
+                seeZipButton.style.display = "inline"; // Show the "See zip stuff" button
             } else {
                 alert("Please select a valid .zip file.");
             }
+        }
+
+        function showZipContents() {
+            const fileList = document.getElementById("fileList");
+            const zip = new JSZip();
+            const seeZipButton = document.getElementById("seeZipButton");
+
+            // Clear the file list before populating
+            fileList.innerHTML = '';
+
+            // Load and read the zip file
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                zip.loadAsync(event.target.result).then(function(contents) {
+                    Object.keys(contents.files).forEach(function(filename) {
+                        const fileEntry = contents.files[filename];
+
+                        // Create a div for each file in the zip
+                        const fileDiv = document.createElement("div");
+                        fileDiv.textContent = filename;
+
+                        // Handle file click to download
+                        fileDiv.onclick = function() {
+                            fileEntry.async("blob").then(function(blob) {
+                                const link = document.createElement('a');
+                                link.href = URL.createObjectURL(blob);
+                                link.download = filename;
+                                link.click();
+                            });
+                        };
+
+                        fileList.appendChild(fileDiv);
+                    });
+                }).catch(function(err) {
+                    if (err.message === "password required") {
+                        const errorMessage = document.createElement("div");
+                        errorMessage.textContent = "This zip is password protected. Unable to extract contents.";
+                        fileList.appendChild(errorMessage);
+                    } else {
+                        console.error(err);
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(currentZipFile);
+
+            // Make the file list scrollable
+            document.querySelector('.scroller').style.display = 'block';
         }
     </script>
 
